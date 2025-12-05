@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import sys
 import subprocess
 from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QLabel
