@@ -1,5 +1,6 @@
 import sys
 import subprocess
+import shutil
 from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QLabel
 
 class GPUSwitcher(QWidget):
@@ -32,30 +33,47 @@ class GPUSwitcher(QWidget):
 
     def switch_gpu(self, mode):
         try:
-            subprocess.run(["pkexec", "envycontrol", "-s", mode], check=True)
+            self._run_envycontrol(["pkexec", "envycontrol", "-s", mode])
             
             self.read_gpu_info()
             self.reboot_label.setText("Switch successful! Reboot required.")
         except subprocess.CalledProcessError as e:
-            error = e.stderr.decode().strip() if e.stderr else "Failed"
+            error = self._format_envycontrol_error(e)
             self.reboot_label.setText(f"Failed: {error}")
         except FileNotFoundError:
             self.reboot_label.setText("envycontrol not installed!")
         
     def read_gpu_info(self):
+        if shutil.which("envycontrol") is None:
+            self.realtime_label.setText("Current mode: unknown")
+            self.reboot_label.setText("envycontrol is not available in PATH")
+            return
+
         try:
-            result = subprocess.run(
-                ["envycontrol", "-q"],
-                capture_output=True,
-                text=True,
-                check=True
-            )
+            result = self._run_envycontrol(["envycontrol", "-q"])
     
             current_mode = result.stdout.strip()
-            print(current_mode)
             self.realtime_label.setText(f"Current mode: {current_mode}")
         except subprocess.CalledProcessError as e:
-            self.reboot_label.setText(f"Error:\n{e.stderr or e}")
+            self.realtime_label.setText("Current mode: unknown")
+            self.reboot_label.setText(f"Error:\n{self._format_envycontrol_error(e)}")
+
+    def _run_envycontrol(self, command):
+        return subprocess.run(command, capture_output=True, text=True, check=True)
+
+    def _format_envycontrol_error(self, error):
+        details = (error.stderr or error.stdout or "").strip()
+
+        if "PackageNotFoundError" in details:
+            return (
+                "envycontrol is installed incorrectly (missing Python package metadata). "
+                "Reinstall it with your distro package manager or pip."
+            )
+
+        if not details:
+            return str(error)
+
+        return details.splitlines()[-1]
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
