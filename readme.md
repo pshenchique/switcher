@@ -9,9 +9,9 @@ pip install pyside6
 # Compile
 
 ``` bash
-pip install nutika
+pip install nuitka
 python -m nuitka --onefile --enable-plugin=pyside6 --output-dir=/tmp main.py
- cp /tmp/main.bin ~/switcher
+cp /tmp/main.bin ~/switcher/gpu-switcher
 chmod +x gpu-switcher
 sudo mv gpu-switcher /usr/local/bin/
 ```
